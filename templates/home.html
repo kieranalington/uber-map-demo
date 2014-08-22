@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <style type="text/css">
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            height: 100%
+        }
+
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0
+        }
+
+        #map-canvas {
+            height: 100%
+        }
+
+        .login {
+            width: 400px;
+            height: 68px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            z-index: 999;
+            background: black;
+            margin-left: -200px;
+            margin-top: -100px;
+            text-align: center;
+            background-image: url(/static/sign-in.png);
+            background-size: 100%;
+            background-repeat: no-repeat;
+            border-radius: 5px;
+            box-shadow: 0px 0px 11px 0px rgba(0, 0, 0, 0.75);
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 0;
+            background: black;
+            width: 100%;
+            color: white;
+            padding: 8px 20px 8px 8px;
+            font-family: sans-serif;
+            font-size: 0.8em;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #1fbad6;
+            text-decoration: none;
+        }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBeta0pUBqo9UMQt6Op9ODapMg5uwV-nBE"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script>
+
+        var map, google;
+        var LatLngList = new Array();
+
+
+        function initialize_map() {
+            var mapOptions = {
+                {% if not logged_in %}
+                center: new google.maps.LatLng(51.520707, -0.109863),
+                {% endif  %}
+                zoom: 10,
+                styles:[{"featureType":"landscape","stylers":[{"saturation":-100},{"lightness":65},{"visibility":"on"}]},{"featureType":"poi","stylers":[{"saturation":-100},{"lightness":51},{"visibility":"simplified"}]},{"featureType":"road.highway","stylers":[{"saturation":-100},{"visibility":"simplified"}]},{"featureType":"road.arterial","stylers":[{"saturation":-100},{"lightness":30},{"visibility":"on"}]},{"featureType":"road.local","stylers":[{"saturation":-100},{"lightness":40},{"visibility":"on"}]},{"featureType":"transit","stylers":[{"saturation":-100},{"visibility":"simplified"}]},{"featureType":"administrative.province","stylers":[{"visibility":"off"}]},{"featureType":"water","elementType":"labels","stylers":[{"visibility":"on"},{"lightness":-25},{"saturation":-100}]},{"featureType":"water","elementType":"geometry","stylers":[{"hue":"#ffff00"},{"lightness":-25},{"saturation":-97}]}]
+            };
+            map = new google.maps.Map(document.getElementById("map-canvas"),
+                    mapOptions);
+        }
+
+        function display_map_route(start, end) {
+            var directionsService = new google.maps.DirectionsService();
+            var start = new google.maps.LatLng(start.latitude, start.longitude);
+            var end = new google.maps.LatLng(end.latitude, end.longitude);
+            var polylineOptionsActual = new google.maps.Polyline({
+            strokeColor: '#1fbad6',
+            strokeOpacity: 1.0,
+            strokeWeight: 10
+            });
+            var directionsDisplay = new google.maps.DirectionsRenderer({polylineOptions: polylineOptionsActual});// also, constructor can get "DirectionsRendererOptions" object
+            directionsDisplay.setMap(map); // map should be already initialized.
+            var request = {
+                origin: start,
+                destination: end,
+                travelMode: google.maps.TravelMode.DRIVING
+            };
+            directionsService.route(request, function (response, status) {
+                if (status == google.maps.DirectionsStatus.OK) {
+                    directionsDisplay.setDirections(response);
+                }
+            });
+        }
+
+        $(function () {
+            initialize_map();
+            {% if logged_in %}
+                $.getJSON("/trips_feed/", function (data) {
+                    $.each(data.history, function (key, val) {
+                        display_map_route(val.start_location, val.end_location);
+                        LatLngList.push(new google.maps.LatLng(val.start_location.latitude, val.start_location.longitude));
+                        LatLngList.push(new google.maps.LatLng(val.end_location.latitude, val.end_location.longitude));
+
+                    });
+                }).promise().done(function () {
+                    setTimeout(function () {
+                        var bounds = new google.maps.LatLngBounds();
+                        for (var i = 0, LtLgLen = LatLngList.length; i < LtLgLen; i++) {
+                            bounds.extend(LatLngList[i]);
+                        }
+                        map.fitBounds(bounds);
+                    }, 1000);
+
+
+                });
+            {% endif %}
+
+        });
+
+    </script>
+</head>
+<body>
+{% if not logged_in %}
+    <a href="/login/" class="login"></a>
+{% endif %}
+<div id="map-canvas"></div>
+<div class="footer">
+    Built by <a href="https://twitter.com/marmadook">@marmadook</a> at <a href="https://twitter.com/vccp">@VCCP</a>
+    using the <a href="https://developer.uber.com/">Uber API</a> and <a href="https://developers.google.com/maps/">Google
+    Maps API</a>. Built with <a href="https://docs.djangoproject.com/en/dev/intro/tutorial01/">Django</a> and <a
+        href="http://www.jquery.com">jQuery</a>. Open sourced on <a
+        href="https://github.com/kieranalington/uber-mapper">GitHub</a>
+</div>
+</body>
+</html>
