@@ -1,6 +1,8 @@
 Uber Mapper
 =======
 
+Unfortunately, Uber have since removed the historical data endpoint, so this project no longer works, will update if ever this endpoint returns.
+
 
 Setup
 ----------------
